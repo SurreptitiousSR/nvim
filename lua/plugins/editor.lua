@@ -15,18 +15,45 @@ return {
     },
     cmd = "Telescope",
     keys = {
-      { "<leader>ff", "<cmd>Telescope find_files<cr>",               desc = "Find files" },
+      { "<leader>ff", desc = "Find files (project root)" },
+      { "<leader>fF", "<cmd>Telescope find_files cwd=~<cr>",         desc = "Find files (home)" },
       { "<leader>fr", "<cmd>Telescope oldfiles<cr>",                 desc = "Recent files" },
-      { "<leader>fg", "<cmd>Telescope live_grep<cr>",                desc = "Live grep" },
+      { "<leader>fg", desc = "Live grep (project root)" },
+      { "<leader>fG", "<cmd>Telescope live_grep cwd=~<cr>",          desc = "Live grep (home)" },
       { "<leader>fb", "<cmd>Telescope buffers<cr>",                  desc = "Buffers" },
       { "<leader>fh", "<cmd>Telescope help_tags<cr>",                desc = "Help tags" },
       { "<leader>fd", "<cmd>Telescope diagnostics<cr>",              desc = "Diagnostics" },
       { "<leader>fk", "<cmd>Telescope keymaps<cr>",                  desc = "Keymaps" },
       { "<leader>fc", "<cmd>Telescope commands<cr>",                 desc = "Commands" },
+      { "<leader>fz", desc = "Find in Cryptex vault" },
+      { "<leader>fZ", desc = "Grep in Cryptex vault" },
     },
     config = function()
       local telescope = require("telescope")
       local actions = require("telescope.actions")
+      local builtin = require("telescope.builtin")
+
+      -- Root-aware find: uses git root if inside a repo, else cwd
+      local function find_root()
+        local root = vim.fs.root(0, { ".git", ".hg", "pyproject.toml", "package.json" })
+        builtin.find_files({ cwd = root or vim.loop.cwd(), hidden = false })
+      end
+
+      local function grep_root()
+        local root = vim.fs.root(0, { ".git", ".hg", "pyproject.toml", "package.json" })
+        builtin.live_grep({ cwd = root or vim.loop.cwd() })
+      end
+
+      vim.keymap.set("n", "<leader>ff", find_root, { silent = true, desc = "Find files (project root)" })
+      vim.keymap.set("n", "<leader>fg", grep_root,  { silent = true, desc = "Live grep (project root)" })
+
+      local cryptex = vim.fn.expand("~/Nextcloud/Cryptex")
+      vim.keymap.set("n", "<leader>fz", function()
+        builtin.find_files({ cwd = cryptex, hidden = false })
+      end, { silent = true, desc = "Find in Cryptex vault" })
+      vim.keymap.set("n", "<leader>fZ", function()
+        builtin.live_grep({ cwd = cryptex })
+      end, { silent = true, desc = "Grep in Cryptex vault" })
 
       telescope.setup({
         defaults = {
