@@ -9,7 +9,7 @@ return {
     },
   },
 
-  -- Mason <-> lspconfig bridge
+  -- Mason <-> lspconfig bridge (installs servers; new API doesn't need handlers)
   {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "williamboman/mason.nvim" },
@@ -22,7 +22,9 @@ return {
     },
   },
 
-  -- LSP configuration
+  -- nvim-lspconfig: provides default server configs (cmd, filetypes, root_dir)
+  -- We load it but use vim.lsp.config/enable (Neovim 0.11 API) instead of
+  -- the deprecated lspconfig.server.setup() pattern.
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
@@ -32,7 +34,6 @@ return {
       "hrsh7th/cmp-nvim-lsp",
     },
     config = function()
-      local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
       local on_attach = function(_, bufnr)
@@ -40,32 +41,32 @@ return {
           vim.keymap.set("n", lhs, rhs, { buffer = bufnr, silent = true, desc = desc })
         end
 
-        map("<leader>ld", vim.lsp.buf.definition,       "Go to definition")
-        map("<leader>lD", vim.lsp.buf.declaration,      "Go to declaration")
-        map("<leader>lr", "<cmd>Telescope lsp_references<cr>", "References")
-        map("<leader>li", "<cmd>Telescope lsp_implementations<cr>", "Implementations")
-        map("<leader>la", vim.lsp.buf.code_action,      "Code action")
+        map("<leader>ld", vim.lsp.buf.definition,      "Go to definition")
+        map("<leader>lD", vim.lsp.buf.declaration,     "Go to declaration")
+        map("<leader>lr", "<cmd>Telescope lsp_references<cr>",        "References")
+        map("<leader>li", "<cmd>Telescope lsp_implementations<cr>",   "Implementations")
+        map("<leader>la", vim.lsp.buf.code_action,     "Code action")
         map("<leader>lf", function() vim.lsp.buf.format({ async = true }) end, "Format")
-        map("<leader>lk", vim.lsp.buf.hover,            "Hover docs")
-        map("<leader>lR", vim.lsp.buf.rename,           "Rename")
-        map("<leader>ls", "<cmd>Telescope lsp_document_symbols<cr>", "Document symbols")
+        map("<leader>lk", vim.lsp.buf.hover,           "Hover docs")
+        map("<leader>lR", vim.lsp.buf.rename,          "Rename")
+        map("<leader>ls", "<cmd>Telescope lsp_document_symbols<cr>",  "Document symbols")
         map("<leader>lS", "<cmd>Telescope lsp_workspace_symbols<cr>", "Workspace symbols")
-        map("[d",         vim.diagnostic.goto_prev,     "Prev diagnostic")
-        map("]d",         vim.diagnostic.goto_next,     "Next diagnostic")
-        map("<leader>le", vim.diagnostic.open_float,    "Show diagnostic")
+        map("[d",         vim.diagnostic.goto_prev,    "Prev diagnostic")
+        map("]d",         vim.diagnostic.goto_next,    "Next diagnostic")
+        map("<leader>le", vim.diagnostic.open_float,   "Show diagnostic")
       end
 
-      local servers = {
+      -- Neovim 0.11 API: set capabilities + on_attach globally for all servers
+      vim.lsp.config("*", {
+        capabilities = capabilities,
+        on_attach    = on_attach,
+      })
+
+      -- Enable servers (nvim-lspconfig registered their default cmd/filetypes above)
+      vim.lsp.enable({
         "pyright", "ts_ls", "html", "cssls",
         "bashls", "yamlls", "taplo", "dockerls", "marksman",
-      }
-
-      for _, server in ipairs(servers) do
-        lspconfig[server].setup({
-          capabilities = capabilities,
-          on_attach = on_attach,
-        })
-      end
+      })
 
       -- Diagnostic display
       vim.diagnostic.config({
