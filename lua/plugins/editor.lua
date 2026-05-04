@@ -37,6 +37,9 @@ return {
           layout_config = {
             horizontal = { prompt_position = "top", preview_width = 0.55 },
           },
+          preview = {
+            treesitter = false,
+          },
           mappings = {
             i = {
               ["<C-k>"] = actions.move_selection_previous,
