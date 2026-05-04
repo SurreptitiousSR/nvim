@@ -34,6 +34,7 @@ return {
         lualine_x = {
           {
             "filetype",
+            icons_enabled = false,
             cond = function() return vim.bo.filetype ~= "alpha" end,
           },
         },
