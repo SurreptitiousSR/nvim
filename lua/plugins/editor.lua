@@ -55,33 +55,47 @@ return {
     end,
   },
 
-  -- Treesitter
+  -- Treesitter (v0.9+ API: just a parser installer; highlighting is built into nvim 0.9+)
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
-    event = { "BufReadPost", "BufNewFile" },
+    lazy = false,
     config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = {
-          "python", "javascript", "typescript", "tsx",
-          "html", "css", "bash", "lua", "vim", "vimdoc",
-          "markdown", "markdown_inline", "org",
-          "yaml", "toml", "json", "dockerfile",
-        },
-        highlight = {
-          enable = true,
-          additional_vim_regex_highlighting = { "org" },
-        },
-        indent = { enable = true },
-        incremental_selection = {
-          enable = true,
-          keymaps = {
-            init_selection    = "<C-space>",
-            node_incremental  = "<C-space>",
-            scope_incremental = false,
-            node_decremental  = "<bs>",
-          },
-        },
+      require("nvim-treesitter").setup()
+
+      local ensure = {
+        "python", "javascript", "typescript", "tsx",
+        "html", "css", "bash", "lua", "vim", "vimdoc",
+        "markdown", "markdown_inline",
+        "yaml", "toml", "json", "dockerfile",
+      }
+
+      -- Defer parser installation so it doesn't block startup
+      vim.schedule(function()
+        local installed = require("nvim-treesitter").get_installed()
+        local installed_set = {}
+        for _, p in ipairs(installed) do installed_set[p] = true end
+
+        local to_install = {}
+        for _, p in ipairs(ensure) do
+          if not installed_set[p] then table.insert(to_install, p) end
+        end
+        if #to_install > 0 then
+          require("nvim-treesitter.install").install(to_install)
+        end
+      end)
+
+      -- Enable treesitter highlighting and indent per-buffer (built-in nvim feature)
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("TreesitterStart", { clear = true }),
+        callback = function()
+          pcall(vim.treesitter.start)
+          -- Use treesitter-based indentation where available
+          local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
+          if lang then
+            vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
       })
     end,
   },
