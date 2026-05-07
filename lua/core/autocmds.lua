@@ -45,6 +45,25 @@ autocmd("FileType", {
   end,
 })
 
+-- Daily notes: jump to first blank line after "## Notes" on open
+autocmd("BufReadPost", {
+  group = augroup("DailyNoteCursor", { clear = true }),
+  pattern = { "*/Cryptex/daily/*.md" },
+  callback = function()
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    for i, line in ipairs(lines) do
+      if line:match("^## Notes") then
+        -- Move to the line after the heading (or end of file)
+        local target = math.min(i + 1, #lines)
+        vim.api.nvim_win_set_cursor(0, { target, 0 })
+        -- Drop into insert mode at end of that line
+        vim.schedule(function() vim.cmd("startinsert!") end)
+        return
+      end
+    end
+  end,
+})
+
 -- Close quickfix/help/man with q
 autocmd("FileType", {
   group = augroup("QuickClose", { clear = true }),
